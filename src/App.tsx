@@ -8,7 +8,9 @@ function App() {
     <div className={styles.App}>
       <Header />
       <main>
-          <EventList />
+          <article>
+              <EventList />
+          </article>
       </main>
     </div>
   )

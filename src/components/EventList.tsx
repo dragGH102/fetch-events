@@ -4,8 +4,8 @@ import styles from '../app-assets/EventList.module.sass'
 const EventList = () => {
     // todo: data loading logic here
 
-    return (<ul>
-        <article><li className={styles['list-item']}>Future event list item with a loop</li></article>
+    return (<ul className={styles['event-list']}>
+        <article><li className={styles['event-list__item']}>Future event list item with a loop</li></article>
     </ul>)
 }
 

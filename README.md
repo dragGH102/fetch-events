@@ -1,4 +1,4 @@
-Run: `yarn start`
+Run: `yarn && yarn start`
 
 Used:
 - typescript

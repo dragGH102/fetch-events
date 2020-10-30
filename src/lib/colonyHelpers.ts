@@ -1,7 +1,35 @@
 import colonyClient from './colonyClient'
-import { ColonyClient, getLogs } from '@colony/colony-js'
+import { ColonyRole, ColonyClient, getLogs } from '@colony/colony-js'
 import { Log } from 'ethers/providers'
 import { utils } from 'ethers'
+
+export const getColonyRoleString = (roleId: number) => ColonyRole[roleId]
+
+export const getListEventLabel = (event: any): string => {
+    const name = event.name
+    const fontWeight = "font-weight: 700"
+
+    if (name === 'ColonyInitialised') {
+        return 'Congratulations! It\'s a beautiful baby colony!'
+    }
+    else if (name === 'ColonyRoleSet') {
+       const { role, domainId, user: userAddress } = event.values
+       return `<span style="${fontWeight}">${getColonyRoleString(role)}</span> role assigned to user <span style="${fontWeight}">${userAddress}</span> in domain <span style="${fontWeight}">${domainId}</span>`
+    }
+    else if (name === 'PayoutClaimed') {
+        const { userAddress, values } = event
+        const { amount, token, fundingPotId } = values
+
+        return `User <span style="${fontWeight}">${userAddress}</span> claimed <span style="${fontWeight}">${amount}&nbsp;${token}</span> payout from pot <span style="${fontWeight}">${fundingPotId}</span>`
+    }
+    else if (name === 'DomainAdded') {
+        const { domainId } = event.values
+        return `Domain <span style="${fontWeight}">${domainId}</span> added`
+    }
+
+    return 'Invalid event'
+
+}
 
 export const timer = (ms: number) => new Promise(res => setTimeout(res, ms))
 

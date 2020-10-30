@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import styles from '../app-assets/EventList.module.sass'
 import {getEventLog} from "../lib/colonyHelpers"
 import Label from "./Label";
+import ListItem from "./ListItem";
 
 const EventList: React.FC = () => {
     // todo: data loading logic here
@@ -43,9 +44,7 @@ const EventList: React.FC = () => {
         {/* @ts-ignore */}
         {loading && <Label labelText="Loading..." type="info"></Label>}
         {error && <Label labelText={`${error}`} type="error"></Label>}
-        {events.map((event: any, i) => (
-            <article key={i}><li className={styles['event-list__item']}>{event.name}</li></article>
-        ))}
+        {events.map((event: any, i) => (<ListItem event={event} key={i} />))}
     </ul>)
 }
 

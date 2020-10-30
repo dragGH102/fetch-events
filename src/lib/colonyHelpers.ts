@@ -14,6 +14,14 @@ export const getTokenNameByAddress = (tokenAddress: string): string => {
     return entry?.symbol || 'Invalid token'
 }
 
+export const stripHtmlTags = (str: string) => {
+    if ((str===null) || (str===''))  return undefined;
+    else {
+        str = str.toString();
+        return str.replace(/<[^>]*>/g, '');
+    }
+}
+
 export const getBlockiesSeed = (event: any): string => {
     return event.userAddress || event.user
         // if no viable seed available, use random string

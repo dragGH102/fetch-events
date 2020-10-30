@@ -5,6 +5,7 @@
 
 import React, { useEffect, useRef } from 'react'
 import '../lib/blockies'
+import styles from "../app-assets/ListItem.module.sass";
 
 interface PropTypes {
     opts?: {[key: string]: number | string}
@@ -36,7 +37,7 @@ const BlockiesIdenticon: React.FC = ({ opts }: PropTypes) => {
     }
 
     {/* @ts-ignore */}
-    return (<canvas ref={canvasRef} />)
+    return (<canvas ref={canvasRef} className={styles['user-avatar']} />)
 }
 
 export default BlockiesIdenticon

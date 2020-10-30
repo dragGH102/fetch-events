@@ -1,13 +1,28 @@
+@import '__partials/colors'
+
 .event-list__item
   list-style: none
   height: 90px
-  margin: 10px
   font-weight: 400
+  text-align: left
+  padding: 26px 20px
+  border-radius: 6px
+  background: $white
 
-  div, canvas
-      display: inline-block
+  &:hover
+    background: $gray
 
-  canvas
+  .event__description
+    display: inline-block
+    width: 605px
+    text-overflow: ellipsis
+    white-space: nowrap
+    overflow: hidden
+
+  .user-avatar
+    display: inline-block
     width: 37px
     height: 37px
     margin-right: 10px
+    border-radius: 23px
+

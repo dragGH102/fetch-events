@@ -7,6 +7,7 @@ const EventList: React.FC = () => {
     // todo: data loading logic here
     let [events, setEvents] = useState([])
     let [loading, setLoading] = useState(false)
+    let [error, setError] = useState(null)
 
     useEffect(() => {
         (async () => {
@@ -22,10 +23,26 @@ const EventList: React.FC = () => {
         })()
     }, [])
 
+    useEffect(() => {
+        // catch global promises rejection
+        const listener = (event: Event) => {
+            const reason = (event as any).reason
+
+            console.error(reason);
+            setLoading(false)
+            setError(reason)
+        }
+
+        window.addEventListener("unhandledrejection", listener);
+
+        return (() => window.removeEventListener("unhandledrejection", listener ))
+    })
+
 
     return (<ul className={styles['event-list']}>
         {/* @ts-ignore */}
-        {loading && <Label labelText="Loading..."></Label>}
+        {loading && <Label labelText="Loading..." type="info"></Label>}
+        {error && <Label labelText={`${error}`} type="error"></Label>}
         {events.map((event: any, i) => (
             <article key={i}><li className={styles['event-list__item']}>{event.name}</li></article>
         ))}

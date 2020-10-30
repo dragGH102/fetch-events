@@ -9,7 +9,10 @@ const getParsedArrayWithRecipient = async (client: ColonyClient, parsedArray: Ar
     let parsedArrayWithRecipient: any = []
 
     await parsedArray.map(async (event: any, i) => {
-        if (event.name !== "PayoutClaimed") return event
+        // delay execution to prevent reaching API rate limit
+        if (i % 5 === 0) await timer(1000)
+
+        if (event.name !== "PayoutClaimed") return parsedArrayWithRecipient.push(event)
 
         const humanReadableFundingPotId = new utils.BigNumber(
             event.values.fundingPotId
@@ -21,10 +24,7 @@ const getParsedArrayWithRecipient = async (client: ColonyClient, parsedArray: Ar
 
         const {recipient: userAddress} = await client.getPayment(associatedTypeId)
 
-        await parsedArrayWithRecipient.push(Object.assign({}, event, {userAddress}))
-
-        // delay execution to prevent reaching API rate limit
-        if (i % 5 === 0) await timer(1000)
+        return parsedArrayWithRecipient.push(Object.assign({}, event, {userAddress}))
     })
 
     return parsedArrayWithRecipient
@@ -62,8 +62,6 @@ export const getEventLog = async () => {
     // TODO: this is even better if we use paginated result (e.g. parsing events in batch of 20)
     // maybe via Observables?
     const parsedArrayWithRecipient = await getParsedArrayWithRecipient(client, parsedArray)
-
-    console.log(parsedArrayWithRecipient, typeof parsedArrayWithRecipient)
 
     return parsedArrayWithRecipient
 }

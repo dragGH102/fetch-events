@@ -44,14 +44,18 @@ const EventList: React.FC = () => {
 
     return (<ul className={styles['event-list']}>
         <Label labelText={`Number of events loaded: ${events.length}`} type="info"/>
+
         {loading && <Label labelText="Loading..." type="info"></Label>}
 
         {error && <a
-            role="presentation"
+            href="javascript:void(0)"
             onClick={() => window.location.reload()}>
             <Label labelText={`${error}. Click to reload`} type="error"></Label>
         </a>}
-        {events.map((event: any, i) => (<ListItem event={event} key={i} />))}
+
+        {events.map((event: any, i) => (
+            <ListItem event={event} key={i} />
+        ))}
     </ul>)
 }
 

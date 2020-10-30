@@ -14,6 +14,12 @@ export const getTokenNameByAddress = (tokenAddress: string): string => {
     return entry?.symbol || 'Invalid token'
 }
 
+export const getBlockiesSeed = (event: any): string => {
+    return event.userAddress || event.user
+        // if no viable seed available, use random string
+        || Math.random().toString(36).substring(5)
+}
+
 export const getListEventLabel = (event: any): string => {
     const name = event.name
     const fontWeight = "font-weight: 700"

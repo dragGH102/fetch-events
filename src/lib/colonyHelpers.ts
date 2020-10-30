@@ -2,8 +2,17 @@ import colonyClient from './colonyClient'
 import { ColonyRole, ColonyClient, getLogs } from '@colony/colony-js'
 import { Log } from 'ethers/providers'
 import { utils } from 'ethers'
+import {contractMapping} from "./contract-map";
 
 export const getColonyRoleString = (roleId: number) => ColonyRole[roleId]
+
+export const getTokenNameByAddress = (tokenAddress: string): string => {
+    const entry = (contractMapping as any)[tokenAddress]
+
+    console.log(tokenAddress, entry?.symbol || 'Invalid token')
+
+    return entry?.symbol || 'Invalid token'
+}
 
 export const getListEventLabel = (event: any): string => {
     const name = event.name
@@ -20,7 +29,7 @@ export const getListEventLabel = (event: any): string => {
         const { userAddress, values } = event
         const { amount, token, fundingPotId } = values
 
-        return `User <span style="${fontWeight}">${userAddress}</span> claimed <span style="${fontWeight}">${amount}&nbsp;${token}</span> payout from pot <span style="${fontWeight}">${fundingPotId}</span>`
+        return `User <span style="${fontWeight}">${userAddress}</span> claimed <span style="${fontWeight}">${amount}&nbsp;${getTokenNameByAddress(token)}</span> payout from pot <span style="${fontWeight}">${fundingPotId}</span>`
     }
     else if (name === 'DomainAdded') {
         const { domainId } = event.values

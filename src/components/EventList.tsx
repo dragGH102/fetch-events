@@ -16,9 +16,11 @@ const EventList: React.FC = () => {
             const events = await getEventLog()
 
             // Give enough time to the promises (returned by getEventLog) to fully resolve
-            setTimeout(() => {
+           setTimeout(() => {
+           // TODO: introduce pagination instead of timeout if possible @ getEventLog
+            console.log(events)
                 setEvents(events)
-            }, 1000)
+           }, 2000)
 
             await setLoading(false)
         })()
@@ -29,7 +31,7 @@ const EventList: React.FC = () => {
         const listener = (event: Event) => {
             const reason = (event as any).reason
 
-            console.error(reason);
+            // console.error(reason);
             setLoading(false)
             setError(reason)
         }
@@ -41,9 +43,14 @@ const EventList: React.FC = () => {
 
 
     return (<ul className={styles['event-list']}>
-        {/* @ts-ignore */}
+        <Label labelText={`Number of events loaded: ${events.length}`} type="info"/>
         {loading && <Label labelText="Loading..." type="info"></Label>}
-        {error && <Label labelText={`${error}`} type="error"></Label>}
+
+        {error && <a
+            role="presentation"
+            onClick={() => window.location.reload()}>
+            <Label labelText={`${error}. Click to reload`} type="error"></Label>
+        </a>}
         {events.map((event: any, i) => (<ListItem event={event} key={i} />))}
     </ul>)
 }

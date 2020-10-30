@@ -96,8 +96,6 @@ export const getEventLog = async () => {
     const parsedArray = sortedArray.map((event: Log) => Object.assign({}, client.interface.parseLog(event), event))
 
     // Store recipient ID for PayoutClaimed event
-    // TODO: this is even better if we use paginated result (e.g. parsing events in batch of 20)
-    // maybe via Observables?
     const parsedArrayWithRecipient = await getParsedArrayWithRecipient(client, parsedArray)
 
     return parsedArrayWithRecipient

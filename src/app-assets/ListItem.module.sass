@@ -1,23 +1,33 @@
-@import '__partials/colors'
+@import 'inc/variables'
 
 .event-list__item
   list-style: none
   height: 90px
-  font-weight: 400
+  box-sizing: border-box
+  font-weight: $fontWeightRegular
   text-align: left
   padding: 26px 20px
   border-radius: 6px
   background: $white
+  margin: 10px 0
 
   &:hover
     background: $gray
 
-  .event__description
+  .event__description-container
     display: inline-block
+
+  .event__description
     width: 605px
-    text-overflow: ellipsis
-    white-space: nowrap
     overflow: hidden
+    white-space: nowrap
+    text-overflow: ellipsis
+
+
+    font-size: $primaryFontSize
+
+  .event__date
+    font-size: $secondaryFontSize
 
   .user-avatar
     display: inline-block

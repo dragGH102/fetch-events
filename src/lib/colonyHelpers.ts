@@ -1,8 +1,8 @@
 import colonyClient from './colonyClient'
-import { ColonyRole, ColonyClient, getLogs } from '@colony/colony-js'
+import { ColonyRole, ColonyClient, getLogs, getBlockTime, Network } from '@colony/colony-js'
 import { Log } from 'ethers/providers'
-import { utils } from 'ethers'
-import {contractMapping} from "./contract-map";
+import { ethers, utils } from 'ethers'
+import { contractMapping } from "./contract-map"
 
 export const getColonyRoleString = (roleId: number) => ColonyRole[roleId]
 
@@ -81,6 +81,19 @@ const getParsedArrayWithRecipient = async (client: ColonyClient, parsedArray: Ar
     return parsedArrayWithRecipient
 }
 
+const getParsedArrayWithBlockTime = async (client: ColonyClient, parsedArray: Array<Log>) => {
+    let parsedArrayWithBlockTime: any = []
+
+    await parsedArray.map(async (event: any, i) => {
+        const blockTime = await getBlockTime(ethers.getDefaultProvider(Network.Mainnet), event.blockHash);
+        console.log(blockTime)
+
+        return parsedArrayWithBlockTime.push(Object.assign({}, event, { blockTime }))
+    })
+
+    return parsedArrayWithBlockTime
+}
+
 export const getEventLog = async () => {
     const client: ColonyClient = await colonyClient
 
@@ -98,19 +111,23 @@ export const getEventLog = async () => {
     // flatten array of arrays
     const flatArray = resolvedPromises.flat(1)
 
-    // Sort by blockId and logId
-    // TODO: get date instead https://github.com/JoinColony/coding-challenge-events-list#getting-the-date
-    const sortedArray = flatArray.sort((a: any, b: any) => {
-        if (a.blockNumber < b.blockNumber) return +1
-        else if (a.blockNumber > b.blockNumber) return - 1
-        else return (a.logIndex < b.logIndex ? +1 : -1)
+    // Parse log items
+    const parsedArray = flatArray.map( (event: Log) => {
+        return Object.assign({}, client.interface.parseLog(event), event)
     })
 
-    // Parse log items
-    const parsedArray = sortedArray.map((event: Log) => Object.assign({}, client.interface.parseLog(event), event))
+    // TODO: fix (list is not rendered) - when removing this from the logic flow everything else works fine
+    // Store block time for each event
+    const parsedArrayWithBlockTime = await getParsedArrayWithBlockTime(client, parsedArray)
+    console.log(parsedArrayWithBlockTime) // TODO: this prints it correctly
+
+    // sort by block time
+    const sortedArray = parsedArrayWithBlockTime.sort((a: any, b: any) => {
+        return b.blockTime - a.blockTime
+    })
 
     // Store recipient ID for PayoutClaimed event
-    const parsedArrayWithRecipient = await getParsedArrayWithRecipient(client, parsedArray)
+    const parsedArrayWithRecipient = await getParsedArrayWithRecipient(client, sortedArray)
 
     return parsedArrayWithRecipient
 }

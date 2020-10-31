@@ -17,8 +17,8 @@ const EventList: React.FC = () => {
 
             // Give enough time to the promises (returned by getEventLog) to fully resolve
            setTimeout(() => {
-           // TODO: introduce pagination instead of timeout if possible @ getEventLog
-            console.log(events)
+                // TODO: introduce pagination instead of timeout if possible @ getEventLog
+                 console.log(events)
                 setEvents(events)
            }, 2000)
 

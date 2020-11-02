@@ -28,7 +28,7 @@ export const getBlockiesSeed = (event: any): string => {
         || Math.random().toString(36).substring(5)
 }
 
-export const getListEventLabel = (event: any): string => {
+export const getListEventLabel = async (event: any) => {
     const name = event.name
     const fontWeight = "font-weight: 700"
 
@@ -40,14 +40,15 @@ export const getListEventLabel = (event: any): string => {
        return `<span style="${fontWeight}">${getColonyRoleString(role)}</span> role assigned to user <span style="${fontWeight}">${userAddress}</span> in domain <span style="${fontWeight}">${domainId}</span>`
     }
     else if (name === 'PayoutClaimed') {
-        const { userAddress, values } = event
-        const { amount, token, fundingPotId } = values
+        const { amount, token, fundingPotId } = event.values
 
         // convert bignumber to string
         const humanReadableAmount = new utils.BigNumber(amount);
         // Get a base 10 value as a BigNumber instance
         const wei = new utils.BigNumber(10);
         const convertedAmount = humanReadableAmount.div(wei.pow(18));
+
+        const userAddress  = await getEventRecipient(event)
 
         return `User <span style="${fontWeight}">${userAddress}</span> claimed <span style="${fontWeight}">${convertedAmount.toString()} ${getTokenNameByAddress(token)}</span> payout from pot <span style="${fontWeight}">${fundingPotId}</span>`
     }
@@ -62,30 +63,20 @@ export const getListEventLabel = (event: any): string => {
 
 export const timer = (ms: number) => new Promise(res => setTimeout(res, ms))
 
-const getParsedArrayWithRecipient = async (parsedArray: Array<Log>) => {
-    let parsedArrayWithRecipient: any = []
+const getEventRecipient = async (event: any) => {
+    if (event.name !== "PayoutClaimed") return event
 
-    await parsedArray.map(async (event: any, i) => {
-        // delay execution to prevent reaching API rate limit
-        if (i % 5 === 0) await timer(1000)
+    const humanReadableFundingPotId = new utils.BigNumber(
+        event.values.fundingPotId
+    ).toString()
 
-        if (event.name !== "PayoutClaimed") return parsedArrayWithRecipient.push(event)
+    const {
+        associatedTypeId,
+    } = await client.getFundingPot(humanReadableFundingPotId)
 
-        const humanReadableFundingPotId = new utils.BigNumber(
-            event.values.fundingPotId
-        ).toString()
+    const {recipient: userAddress} = await client.getPayment(associatedTypeId)
 
-        const {
-            associatedTypeId,
-        } = await client.getFundingPot(humanReadableFundingPotId)
-
-        const {recipient: userAddress} = await client.getPayment(associatedTypeId)
-
-        return parsedArrayWithRecipient.push(Object.assign({}, event, {userAddress}))
-
-    })
-
-    return parsedArrayWithRecipient
+    return userAddress
 }
 
 export const getEventBlockTime = async (event: any) => {
@@ -121,31 +112,6 @@ export const getEventLog = async () => {
             resultSliced.push(Object.assign({}, parsedLog, log))
         })
     })
-
-    console.log('resultSliced', resultSliced)
-/*
-   // Store block time for each event
-    // TODO: is this block preventing the array to fill in? ... could try to do in the loop above
-
-    console.log('parsedArrayWithBlockTime', parsedArrayWithBlockTime)
-
-    // sort by block time
-    const sortedArray = await parsedArrayWithBlockTime.sort((a: any, b: any) => {
-        // console.log(a.blockTime, b.blockTime);
-        return b.blockTime - a.blockTime
-    })
-    // TODO: check order is correct
-    // + must resort when new page comes in (@ react component via utility function)
-    console.log('sortedArrayBN', sortedArray.map((a: any) => a.blockTime))
-
-    // Store recipient ID for PayoutClaimed event
-    // await timer(2000)
-    const parsedArrayWithRecipient = await getParsedArrayWithRecipient(client, sortedArray)
-
-    console.log('parsedArrayWithRecipient', parsedArrayWithRecipient)
-
-    // return sortedArray
-    return parsedArrayWithRecipient*/
 
     return resultSliced
 }

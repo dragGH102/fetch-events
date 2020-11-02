@@ -5,14 +5,17 @@ import {getBlockiesSeed, getEventBlockTime, getListEventLabel, stripHtmlTags} fr
 import BlockiesIdenticon from "./BlockiesIdenticon"
 import { useEffect } from 'react';
 
-const ListItem = ({ event }: { event: any }) => {
+const ListItem = ({ event, setEventBlockTime }: { event: any, setEventBlockTime: Function }) => {
 
+    const [description, setDescription] = useState('')
     const [displayDate, setDisplayDate] = useState('')
-    const description = getListEventLabel(event)
 
     useEffect(() => {
         (async ()=> {
+            setDescription(await getListEventLabel(event))
+
             const blockTime = await getEventBlockTime(event)
+            setEventBlockTime(event.logIndex, blockTime)
 
             const blockDate = new Date(blockTime)
             const day = blockDate.getDate()

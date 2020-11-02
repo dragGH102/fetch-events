@@ -1,6 +1,6 @@
 import React, {Fragment, useEffect, useState, useReducer } from 'react'
 import styles from '../app-assets/EventList.module.sass'
-import { getEventLog } from "../lib/colonyHelpers"
+import {getEventLog} from "../lib/colonyHelpers"
 import Label from "./Label";
 import ListItem from "./ListItem";
 import Button from "./Button";
@@ -8,38 +8,43 @@ import Button from "./Button";
 const EventList: React.FC = () => {
     // todo: data loading logic here
     const [events, setEvents] = useState([])
+    const [sortedEvents, setSortedEvents] = useState([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
-    const [page, setPage] = useState(1)
-    const [ignored, forceUpdate] = useReducer(x => x + 1, 0)
+    const [page, setPage] = useState(0)
+    const [buttonEnabled, setButtonEnabled] = useState(true)
+    const [_, forceUpdate] = useReducer(x => x + 1, 0)
     const eventsPerPage = 10
 
-    const reloadTime = 10000
+    const reloadTime = 20000
 
     useEffect(() => {
         (async () => {
             await setLoading(true)
-            const newEvents = await getEventLog()
-
-            setEvents(newEvents as any)
-
-            await setLoading(false)
-
-            // Give enough time to the promises (returned by getEventLog) to fully resolve and store the updated state
-            setTimeout(() => {
-              forceUpdate()
-            }, 2000)
+            getEventLog().then((newEvents) => {
+                setEvents(newEvents as any)
+                setLoading(false)
+            })
         })()
     }, [])
 
-    const loadNextPage = () => setPage(page + 1)
+    const loadNextPage = () => {
+        if (!buttonEnabled) return
 
-    useEffect(() => {
-      if (error) {
-          setTimeout(() => window.location.reload(), reloadTime)
-      }
+        setButtonEnabled(false)
+        setPage(page + 1)
+        setTimeout(() => setButtonEnabled(true), reloadTime)
+    }
 
-    }, [error])
+    const setEventBlockTime = (logIndex: number, blockTime: number) => {
+        const finalEvents: any = [].concat(events)
+        finalEvents.find((e: any) => e.logIndex === logIndex).blockTime = blockTime
+
+        setSortedEvents(finalEvents.sort((a: any, b: any) => {
+            // console.log(a.blockTime, b.blockTime);
+            return b.blockTime - a.blockTime
+        }))
+    }
 
     useEffect(() => {
         // catch global promises rejection
@@ -56,23 +61,26 @@ const EventList: React.FC = () => {
         return (() => window.removeEventListener("unhandledrejection", listener ))
     })
 
-
     return (<Fragment><ul className={styles['event-list']}>
         {loading && <Label labelText="Loading..." type="info"></Label>}
 
         {error && <a
             href="javascript:void(0)"
             onClick={() => window.location.reload()}>
-            <Label labelText={`${error} <br> Reloading in ${ reloadTime / 1000 } seconds... or click to reload`} type="error"></Label>
+            <Label labelText={`${error} <br> Click to reload`} type="error"></Label>
         </a>}
 
-        {!loading && events.map((event: any, i) => {
-            return (i > (page - 1) * eventsPerPage + 10) ? null : <ListItem event={event} key={i} />
+        {!loading && sortedEvents.map((event: any, i) => {
+            return (i > (page - 1) * eventsPerPage + 10) ? null
+                : <ListItem event={event} key={i} setEventBlockTime={(logIndex: number, blockTime: number) => setEventBlockTime(logIndex, blockTime)} />
         })}
-        <Label labelText={`Number of events loaded: ${events.length} / Displayed: ${Math.min((page - 1) * eventsPerPage + 10, events.length)}`} type="info"/>
 
     </ul>
-    {((page - 1) * eventsPerPage + 10 < events.length) && <Button labelText="Load more" onClick={() => loadNextPage()} />}
+    {(page === 0 || (page - 1) * eventsPerPage + 10 < events.length) && !error && !loading && <Button
+        labelText={`Load ${page === 0 ? 'initial': `more (wait ${reloadTime/1000}s to avoid API 429)`}`}
+        onClick={() => loadNextPage()}
+        disabled={!buttonEnabled}
+    />}
     </Fragment>)
 }
 

@@ -1,15 +1,27 @@
-import React from 'react'
+import React, { useState } from 'react'
 import styles from '../app-assets/ListItem.module.sass';
 import '../app-assets/global.module.sass'
-import {getBlockiesSeed, getListEventLabel, stripHtmlTags} from "../lib/colonyHelpers"
+import {getBlockiesSeed, getEventBlockTime, getListEventLabel, stripHtmlTags} from "../lib/colonyHelpers"
 import BlockiesIdenticon from "./BlockiesIdenticon"
+import { useEffect } from 'react';
 
 const ListItem = ({ event }: { event: any }) => {
+
+    const [displayDate, setDisplayDate] = useState('')
     const description = getListEventLabel(event)
 
-    const blockDate = new Date(event.blockTime)
-    const day = blockDate.getDate()
-    const month = blockDate.toLocaleString('default', { month: 'narrow' })
+    useEffect(() => {
+        (async ()=> {
+            const blockTime = await getEventBlockTime(event)
+
+            const blockDate = new Date(blockTime)
+            const day = blockDate.getDate()
+            const month = blockDate.toLocaleString('default', { month: 'short' })
+
+            setDisplayDate(`${day} ${month}`)
+        })()
+    })
+
 
     return (<article>
         <li className={styles['event-list__item']}>
@@ -21,7 +33,7 @@ const ListItem = ({ event }: { event: any }) => {
                     className={styles['event__description']}
                     dangerouslySetInnerHTML={{__html: description}}
                 />
-                <div className={styles['event__date']}>{day}&nbsp;{month}</div>
+                <div className={styles['event__date']}>{displayDate}</div>
             </div>
         </li>
     </article>)

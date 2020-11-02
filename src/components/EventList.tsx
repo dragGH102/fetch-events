@@ -1,30 +1,45 @@
-import React, { useEffect, useState } from 'react'
+import React, {Fragment, useEffect, useState, useReducer } from 'react'
 import styles from '../app-assets/EventList.module.sass'
-import {getEventLog} from "../lib/colonyHelpers"
+import { getEventLog } from "../lib/colonyHelpers"
 import Label from "./Label";
 import ListItem from "./ListItem";
+import Button from "./Button";
 
 const EventList: React.FC = () => {
     // todo: data loading logic here
-    let [events, setEvents] = useState([])
-    let [loading, setLoading] = useState(false)
-    let [error, setError] = useState(null)
+    const [events, setEvents] = useState([])
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState(null)
+    const [page, setPage] = useState(1)
+    const [ignored, forceUpdate] = useReducer(x => x + 1, 0)
+    const eventsPerPage = 10
+
+    const reloadTime = 10000
 
     useEffect(() => {
         (async () => {
             await setLoading(true)
-            const events = await getEventLog()
+            const newEvents = await getEventLog()
 
-            // Give enough time to the promises (returned by getEventLog) to fully resolve
-           setTimeout(() => {
-                // TODO: introduce pagination instead of timeout if possible @ getEventLog
-                 console.log(events)
-                setEvents(events)
-           }, 2000)
+            setEvents(newEvents as any)
 
             await setLoading(false)
+
+            // Give enough time to the promises (returned by getEventLog) to fully resolve and store the updated state
+            setTimeout(() => {
+              forceUpdate()
+            }, 2000)
         })()
     }, [])
+
+    const loadNextPage = () => setPage(page + 1)
+
+    useEffect(() => {
+      if (error) {
+          setTimeout(() => window.location.reload(), reloadTime)
+      }
+
+    }, [error])
 
     useEffect(() => {
         // catch global promises rejection
@@ -42,21 +57,23 @@ const EventList: React.FC = () => {
     })
 
 
-    return (<ul className={styles['event-list']}>
-        <Label labelText={`Number of events loaded: ${events.length}`} type="info"/>
-
+    return (<Fragment><ul className={styles['event-list']}>
         {loading && <Label labelText="Loading..." type="info"></Label>}
 
         {error && <a
             href="javascript:void(0)"
             onClick={() => window.location.reload()}>
-            <Label labelText={`${error}. Click to reload`} type="error"></Label>
+            <Label labelText={`${error} <br> Reloading in ${ reloadTime / 1000 } seconds... or click to reload`} type="error"></Label>
         </a>}
 
-        {events.map((event: any, i) => (
-            <ListItem event={event} key={i} />
-        ))}
-    </ul>)
+        {!loading && events.map((event: any, i) => {
+            return (i > (page - 1) * eventsPerPage + 10) ? null : <ListItem event={event} key={i} />
+        })}
+        <Label labelText={`Number of events loaded: ${events.length} / Displayed: ${Math.min((page - 1) * eventsPerPage + 10, events.length)}`} type="info"/>
+
+    </ul>
+    {((page - 1) * eventsPerPage + 10 < events.length) && <Button labelText="Load more" onClick={() => loadNextPage()} />}
+    </Fragment>)
 }
 
 export default EventList

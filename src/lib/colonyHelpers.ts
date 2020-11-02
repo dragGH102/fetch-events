@@ -4,12 +4,12 @@ import { Log } from 'ethers/providers'
 import { ethers, utils } from 'ethers'
 import { contractMapping } from "./contract-map"
 
+let client: ColonyClient
+
 export const getColonyRoleString = (roleId: number) => ColonyRole[roleId]
 
 export const getTokenNameByAddress = (tokenAddress: string): string => {
     const entry = (contractMapping as any)[tokenAddress]
-
-    console.log(tokenAddress, entry?.symbol || 'Invalid token')
 
     return entry?.symbol || 'Invalid token'
 }
@@ -43,7 +43,13 @@ export const getListEventLabel = (event: any): string => {
         const { userAddress, values } = event
         const { amount, token, fundingPotId } = values
 
-        return `User <span style="${fontWeight}">${userAddress}</span> claimed <span style="${fontWeight}">${amount}&nbsp;${getTokenNameByAddress(token)}</span> payout from pot <span style="${fontWeight}">${fundingPotId}</span>`
+        // convert bignumber to string
+        const humanReadableAmount = new utils.BigNumber(amount);
+        // Get a base 10 value as a BigNumber instance
+        const wei = new utils.BigNumber(10);
+        const convertedAmount = humanReadableAmount.div(wei.pow(18));
+
+        return `User <span style="${fontWeight}">${userAddress}</span> claimed <span style="${fontWeight}">${convertedAmount.toString()} ${getTokenNameByAddress(token)}</span> payout from pot <span style="${fontWeight}">${fundingPotId}</span>`
     }
     else if (name === 'DomainAdded') {
         const { domainId } = event.values
@@ -56,7 +62,7 @@ export const getListEventLabel = (event: any): string => {
 
 export const timer = (ms: number) => new Promise(res => setTimeout(res, ms))
 
-const getParsedArrayWithRecipient = async (client: ColonyClient, parsedArray: Array<Log>) => {
+const getParsedArrayWithRecipient = async (parsedArray: Array<Log>) => {
     let parsedArrayWithRecipient: any = []
 
     await parsedArray.map(async (event: any, i) => {
@@ -76,58 +82,70 @@ const getParsedArrayWithRecipient = async (client: ColonyClient, parsedArray: Ar
         const {recipient: userAddress} = await client.getPayment(associatedTypeId)
 
         return parsedArrayWithRecipient.push(Object.assign({}, event, {userAddress}))
+
     })
 
     return parsedArrayWithRecipient
 }
 
-const getParsedArrayWithBlockTime = async (client: ColonyClient, parsedArray: Array<Log>) => {
-    let parsedArrayWithBlockTime: any = []
+export const getEventBlockTime = async (event: any) => {
+    const blockTime = await getBlockTime(ethers.getDefaultProvider(Network.Mainnet), event.blockHash);
+    // console.log(blockTime)
 
-    await parsedArray.map(async (event: any, i) => {
-        const blockTime = await getBlockTime(ethers.getDefaultProvider(Network.Mainnet), event.blockHash);
-        console.log(blockTime)
-
-        return parsedArrayWithBlockTime.push(Object.assign({}, event, { blockTime }))
-    })
-
-    return parsedArrayWithBlockTime
+    return blockTime
 }
 
 export const getEventLog = async () => {
-    const client: ColonyClient = await colonyClient
+    client = await colonyClient
 
     const filters = ['ColonyInitialised', 'ColonyRoleSet', 'PayoutClaimed', 'DomainAdded']
 
     // for each filter, fetch event log
-    const result: Array<Promise<Log[]>> = filters.map((filterId: any) => {
-        return getLogs(client, (client as any).filters[filterId]())
-        // return acc.then((accValue) => accValue.concat(filterLogs))
+    const result: Array<Promise<Log[]>> = filters.map(async(filterId: any) => {
+        return await getLogs(client, (client as any).filters[filterId]())
     })
 
-    // resolve promised returned
-    const resolvedPromises: Array<Log[]> = await Promise.all(result)
+    let resultSliced: Log[] = []
 
-    // flatten array of arrays
-    const flatArray = resolvedPromises.flat(1)
+    // slice promises (pagination) and resolve ones we currently need
+    // they are nested in 4 arrays (from filters)
+    result.map(async (logPromise) => {
+        // resolve set-filter
+        const set = await logPromise
 
-    // Parse log items
-    const parsedArray = flatArray.map( (event: Log) => {
-        return Object.assign({}, client.interface.parseLog(event), event)
+        // resolve single logs
+        await set.map(async (log: any) => {
+            // add parsed properties
+            const parsedLog = await client.interface.parseLog(log)
+
+            resultSliced.push(Object.assign({}, parsedLog, log))
+        })
     })
 
-    // TODO: fix (list is not rendered) - when removing this from the logic flow everything else works fine
-    // Store block time for each event
-    const parsedArrayWithBlockTime = await getParsedArrayWithBlockTime(client, parsedArray)
-    console.log(parsedArrayWithBlockTime) // TODO: this prints it correctly
+    console.log('resultSliced', resultSliced)
+/*
+   // Store block time for each event
+    // TODO: is this block preventing the array to fill in? ... could try to do in the loop above
+
+    console.log('parsedArrayWithBlockTime', parsedArrayWithBlockTime)
 
     // sort by block time
-    const sortedArray = parsedArrayWithBlockTime.sort((a: any, b: any) => {
+    const sortedArray = await parsedArrayWithBlockTime.sort((a: any, b: any) => {
+        // console.log(a.blockTime, b.blockTime);
         return b.blockTime - a.blockTime
     })
+    // TODO: check order is correct
+    // + must resort when new page comes in (@ react component via utility function)
+    console.log('sortedArrayBN', sortedArray.map((a: any) => a.blockTime))
 
     // Store recipient ID for PayoutClaimed event
+    // await timer(2000)
     const parsedArrayWithRecipient = await getParsedArrayWithRecipient(client, sortedArray)
 
-    return parsedArrayWithRecipient
+    console.log('parsedArrayWithRecipient', parsedArrayWithRecipient)
+
+    // return sortedArray
+    return parsedArrayWithRecipient*/
+
+    return resultSliced
 }

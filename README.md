@@ -12,6 +12,7 @@ Used:
 Possible improvement: REDUX+sagas for clear state management & data fetching logic
 
 Some ideas for tests... (Jest+Enzyme)
+
 `EventList.tsx`
 
     test('should set the events if returned by getEventLog', () => {})

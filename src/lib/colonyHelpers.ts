@@ -80,10 +80,15 @@ const getEventRecipient = async (event: any) => {
 }
 
 export const getEventBlockTime = async (event: any) => {
-    const blockTime = await getBlockTime(ethers.getDefaultProvider(Network.Mainnet), event.blockHash);
-    // console.log(blockTime)
+    try {
+        const blockTime = await getBlockTime(ethers.getDefaultProvider(Network.Mainnet), event.blockHash);
+        // console.log(blockTime)
 
-    return blockTime
+        return blockTime
+    }
+    catch(e) {
+        return Promise.reject(new Error(e.reason))
+    }
 }
 
 export const getEventLog = async () => {
@@ -96,22 +101,37 @@ export const getEventLog = async () => {
         return await getLogs(client, (client as any).filters[filterId]())
     })
 
-    let resultSliced: Log[] = []
-
     // slice promises (pagination) and resolve ones we currently need
     // they are nested in 4 arrays (from filters)
-    result.map(async (logPromise) => {
+    const results = await result.map(async (logPromise) => {
         // resolve set-filter
-        const set = await logPromise
-
-        // resolve single logs
-        await set.map(async (log: any) => {
-            // add parsed properties
-            const parsedLog = await client.interface.parseLog(log)
-
-            resultSliced.push(Object.assign({}, parsedLog, log))
-        })
+        return await logPromise
     })
 
-    return resultSliced
+    // Resolve the promises returned my map
+    const events: Log[][] = await Promise.all(results)
+
+    // Flatten result array-of-array
+    const flatEvents: Log[] = events.flat(1)
+
+    // add parsed properties
+    const parsedEvents = flatEvents.map((log: any) => {
+        // add parsed properties
+        const parsedLog = client.interface.parseLog(log)
+
+        // resultSliced.push(Object.assign({}, parsedLog, log))
+        return Object.assign({}, parsedLog, log)
+    })
+
+/*    // add block time for each event
+    const resultsWithBlockTime = parsedEvents.map(async(log: any) => {
+        const blockTime = await getEventBlockTime(log)
+        return Object.assign({}, { blockTime }, log)
+    })
+
+    // sort by block time
+    const parsedEventsWithBlockTime: any[] = await Promise.all(resultsWithBlockTime)
+    console.log(parsedEventsWithBlockTime);*/
+
+    return parsedEvents
 }

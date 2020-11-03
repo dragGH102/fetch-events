@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import styles from '../app-assets/ListItem.module.sass';
 import '../app-assets/global.module.sass'
-import {getBlockiesSeed, getEventBlockTime, getListEventLabel, stripHtmlTags, timer} from "../lib/colonyHelpers"
+import {getBlockiesSeed, getEventBlockTime, getListEventLabel, stripHtmlTags} from "../lib/colonyHelpers"
 import BlockiesIdenticon from "./BlockiesIdenticon"
 import { useEffect } from 'react';
 
@@ -10,6 +10,7 @@ const ListItem = React.memo(({ event, setEventBlockTime, index }: { event: any, 
     const [description, setDescription] = useState('')
     const [displayDate, setDisplayDate] = useState('')
     const [loading, setLoading] = useState(true)
+    const [coolDownTime, setCoolDownTime] = useState(1000)
 
     const setBlockTime = async() => {
         // @ts-ignore
@@ -31,10 +32,11 @@ const ListItem = React.memo(({ event, setEventBlockTime, index }: { event: any, 
         }
         catch (e) {
             // wait a bit to to retry avoid 429 backend error
-            setTimeout (async() => {
-                console.log(`[${index}] retrying for ${event.logIndex}`)
+            setTimeout(async() => {
+                setCoolDownTime(coolDownTime + 1000)
+                console.log(`[${index}] retrying for ${event.logIndex}. Prev cooldown time: ${coolDownTime}`)
                 await setBlockTime()
-            }, index * 1000)
+            }, coolDownTime)
         }
     }
 
@@ -43,7 +45,7 @@ const ListItem = React.memo(({ event, setEventBlockTime, index }: { event: any, 
             setDescription(await getListEventLabel(event))
             setBlockTime()
         })()
-    },[])
+    },[coolDownTime])
 
     return (<article>
         <li className={styles['event-list__item']}>

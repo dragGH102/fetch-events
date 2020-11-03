@@ -1,6 +1,6 @@
-import React, {Fragment, useEffect, useState, useReducer } from 'react'
+import React, { Fragment, useEffect, useState } from 'react'
 import styles from '../app-assets/EventList.module.sass'
-import {getEventLog, timer} from "../lib/colonyHelpers"
+import { getEventLog } from "../lib/colonyHelpers"
 import Label from "./Label";
 import ListItem from "./ListItem";
 import Button from "./Button";

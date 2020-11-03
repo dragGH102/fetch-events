@@ -1,4 +1,4 @@
-import { getColonyNetworkClient, Network } from '@colony/colony-js'
+import { getColonyNetworkClient, Network, ColonyClient } from '@colony/colony-js'
 import { Wallet } from 'ethers'
 import { InfuraProvider } from 'ethers/providers'
 
@@ -17,7 +17,7 @@ const wallet = Wallet.createRandom()
 // Connect your wallet to the provider
 const connectedWallet = wallet.connect(provider)
 
-export default (async() => {
+export default (async(): Promise<ColonyClient> => {
     // Get a network client instance
 
     const networkClient = await getColonyNetworkClient(

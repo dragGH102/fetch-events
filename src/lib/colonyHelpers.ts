@@ -6,6 +6,15 @@ import { contractMapping } from "./contract-map"
 
 let client: ColonyClient
 
+type ParsedSet = {
+    blockTime?: number
+    values?: any
+    userAddress?: string
+    user?: any
+    name: string
+    blockHash: string
+}
+
 export const getColonyRoleString = (roleId: number) => ColonyRole[roleId]
 
 export const getTokenNameByAddress = (tokenAddress: string): string => {
@@ -22,25 +31,23 @@ export const stripHtmlTags = (str: string) => {
     }
 }
 
-export const getBlockiesSeed = (event: any): string => {
+export const getBlockiesSeed = (event: ParsedSet): string => {
     return event.userAddress || event.user
         // if no viable seed available, use random string
         || Math.random().toString(36).substring(5)
 }
 
-export const getListEventLabel = async (event: any) => {
+export const getListEventLabel = async (event: ParsedSet) => {
     const name = event.name
     const fontWeight = "font-weight: 700"
 
     if (name === 'ColonyInitialised') {
         return 'Congratulations! It\'s a beautiful baby colony!'
-    }
-    else if (name === 'ColonyRoleSet') {
-       const { role, domainId, user: userAddress } = event.values
-       return `<span style="${fontWeight}">${getColonyRoleString(role)}</span> role assigned to user <span style="${fontWeight}">${userAddress}</span> in domain <span style="${fontWeight}">${domainId}</span>`
-    }
-    else if (name === 'PayoutClaimed') {
-        const { amount, token, fundingPotId } = event.values
+    } else if (name === 'ColonyRoleSet') {
+        const {role, domainId, user: userAddress} = event.values
+        return `<span style="${fontWeight}">${getColonyRoleString(role)}</span> role assigned to user <span style="${fontWeight}">${userAddress}</span> in domain <span style="${fontWeight}">${domainId}</span>`
+    } else if (name === 'PayoutClaimed') {
+        const {amount, token, fundingPotId} = event.values
 
         // convert bignumber to string
         const humanReadableAmount = new utils.BigNumber(amount);
@@ -48,23 +55,19 @@ export const getListEventLabel = async (event: any) => {
         const wei = new utils.BigNumber(10);
         const convertedAmount = humanReadableAmount.div(wei.pow(18));
 
-        const userAddress  = await getEventRecipient(event)
+        const userAddress = await getEventRecipient(event)
 
         return `User <span style="${fontWeight}">${userAddress}</span> claimed <span style="${fontWeight}">${convertedAmount.toString()} ${getTokenNameByAddress(token)}</span> payout from pot <span style="${fontWeight}">${fundingPotId}</span>`
-    }
-    else if (name === 'DomainAdded') {
-        const { domainId } = event.values
+    } else if (name === 'DomainAdded') {
+        const {domainId} = event.values
         return `Domain <span style="${fontWeight}">${domainId}</span> added`
     }
 
     return 'Invalid event'
-
 }
 
-export const timer = (ms: number) => new Promise(res => setTimeout(res, ms))
-
-const getEventRecipient = async (event: any) => {
-    if (event.name !== "PayoutClaimed") return event
+const getEventRecipient = async (event: ParsedSet): Promise<undefined | string> => {
+    if (event.name !== "PayoutClaimed") return undefined
 
     const humanReadableFundingPotId = new utils.BigNumber(
         event.values.fundingPotId
@@ -79,10 +82,9 @@ const getEventRecipient = async (event: any) => {
     return userAddress
 }
 
-export const getEventBlockTime = async (event: any) => {
+export const getEventBlockTime = async (event: ParsedSet): Promise<number> => {
     try {
         const blockTime = await getBlockTime(ethers.getDefaultProvider(Network.Mainnet), event.blockHash);
-        // console.log(blockTime)
 
         return blockTime
     }
@@ -91,7 +93,7 @@ export const getEventBlockTime = async (event: any) => {
     }
 }
 
-export const getEventLog = async () => {
+export const getEventLog = async (): Promise<ParsedSet[]> => {
     client = await colonyClient
 
     const filters = ['ColonyInitialised', 'ColonyRoleSet', 'PayoutClaimed', 'DomainAdded']
@@ -101,10 +103,8 @@ export const getEventLog = async () => {
         return await getLogs(client, (client as any).filters[filterId]())
     })
 
-    // slice promises (pagination) and resolve ones we currently need
-    // they are nested in 4 arrays (from filters)
     const results = await result.map(async (logPromise) => {
-        // resolve set-filter
+        // fulfill set-filter
         return await logPromise
     })
 
@@ -115,23 +115,12 @@ export const getEventLog = async () => {
     const flatEvents: Log[] = events.flat(1)
 
     // add parsed properties
-    const parsedEvents = flatEvents.map((log: any) => {
+    const parsedEvents: any = flatEvents.map((log: Log) => {
         // add parsed properties
         const parsedLog = client.interface.parseLog(log)
 
-        // resultSliced.push(Object.assign({}, parsedLog, log))
         return Object.assign({}, parsedLog, log)
     })
-
-/*    // add block time for each event
-    const resultsWithBlockTime = parsedEvents.map(async(log: any) => {
-        const blockTime = await getEventBlockTime(log)
-        return Object.assign({}, { blockTime }, log)
-    })
-
-    // sort by block time
-    const parsedEventsWithBlockTime: any[] = await Promise.all(resultsWithBlockTime)
-    console.log(parsedEventsWithBlockTime);*/
 
     return parsedEvents
 }

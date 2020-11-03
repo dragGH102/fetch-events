@@ -1,5 +1,7 @@
 Run: `yarn && yarn start`
 
+IMPORTANT: this has been tested in Opera and Chrome. It seems that Firefox has CORS issues
+
 Used:
 - Typescript
 - Sass
@@ -9,7 +11,7 @@ Used:
 
 Possible improvement: REDUX+sagas for clear state management & data fetching logic
 
-Some other ideas for tests...
+Some ideas for tests... (Jest+Enzyme)
 `EventList.tsx`
 
     test('should set the events if returned by getEventLog', () => {})
